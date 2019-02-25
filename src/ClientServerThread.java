@@ -19,9 +19,12 @@ class ClientServerThread implements Runnable
 	{
 		this.clientInput = clientInput;
 		this.serverOutput = serverOutput;
-		try {
+		try 
+		{
 			exceptionWriter=new FileWriter("exception.txt",true);
-		} catch (IOException e) {
+		} 
+		catch (IOException e) 
+		{
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 			e.printStackTrace(exceptionPW);
@@ -31,21 +34,23 @@ class ClientServerThread implements Runnable
 
 	@Override
 	public void run(){
-		try {
+		try 
+		{
 			//read raw data from client to forward it to the server
 			byte[] buffer = new byte[4096];
-			int temp;
-			do
+			int readTemp = clientInput.read(buffer);
+			while (readTemp >= 0)
 			{
-				temp = clientInput.read(buffer);
-				if (temp > 0) {
-					serverOutput.write(buffer, 0, temp);
+				if (readTemp > 0) 
+				{
+					serverOutput.write(buffer, 0, readTemp);
 					if (clientInput.available() < 1) 
 					{
 						serverOutput.flush();
 					}
 				}
-			} while (temp >= 0);
+				readTemp = clientInput.read(buffer);
+			} 
 		}
 		catch (SocketTimeoutException e) 
 		{

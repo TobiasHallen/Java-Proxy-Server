@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,7 +47,7 @@ import javax.swing.text.DefaultCaret;
 
 
 
-public class HTTPProxy implements Runnable{
+public class HTTPProxy{
 
 	private static JFrame proxyGUI;
 
@@ -55,26 +56,32 @@ public class HTTPProxy implements Runnable{
 	{
 		UIManager.setLookAndFeel(UIManager.getLookAndFeel());
 		HTTPProxy proxy = new HTTPProxy(8080);
-		EventQueue.invokeLater(new Runnable() {
-		    public void run() {
-			try {
-				proxy.initialize();
-				proxyGUI.setVisible(true);
-			} catch (Exception e) {
-			    e.printStackTrace();
+		EventQueue.invokeLater(new Runnable() 
+		{
+			public void run() 
+			{
+				try 
+				{
+					proxy.initialize();
+					proxyGUI.setVisible(true);
+				} catch (Exception e) 
+				{
+					e.printStackTrace();
+				}
 			}
-		    }
 		});
 		proxy.listen();	
 	}
 
 	final JFileChooser fc = new JFileChooser();
-	private JTextField txtAbout;
-	private JTextField infoField;
-	private static JTextArea txtInfoArea;
-	private Pattern patternIp;
-	private Matcher matcherIP;
-	private static JScrollPane txtInfoScrollPane;
+	private JTextArea txtAbout;
+	private JTextField iOField;
+
+	private static JTextArea connectionInfoArea;
+	private static JTextArea userIOArea;
+
+	private static JScrollPane connInfoScrollPane;
+	private static JScrollPane userIOScrollPane;
 
 
 	private ServerSocket serverSocket;	 
@@ -93,8 +100,6 @@ public class HTTPProxy implements Runnable{
 		blockList = new HashMap<>();
 		threadList = new ArrayList<>();
 		System.setOut(new MyPrintStream(System.out));
-		new Thread(this).start();	
-
 		try
 		{
 			RandomAccessFile raf = new RandomAccessFile("exception.txt", "rw");
@@ -172,12 +177,16 @@ public class HTTPProxy implements Runnable{
 		while(running){
 			try {
 				Socket s = serverSocket.accept();
-				Thread t = new Thread(new HTTPRequestHandler(s));				
+				Thread t = new Thread(new HTTPProxyWorkerThread(s));				
 				threadList.add(t);			
 				t.start();	
 			} catch (SocketException e) {
 				System.out.println("Server Shut Down...");
 			} catch (IOException e) {
+				exceptionPW.write(new Date().toString()); // Adding the date
+				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+				e.printStackTrace(exceptionPW);
+			} catch (NullPointerException e) {
 				exceptionPW.write(new Date().toString()); // Adding the date
 				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 				e.printStackTrace(exceptionPW);
@@ -220,6 +229,10 @@ public class HTTPProxy implements Runnable{
 				exceptionPW.write(new Date().toString()); // Adding the date
 				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 				e.printStackTrace(exceptionPW);
+			} catch (NoSuchElementException e) {
+				exceptionPW.write(new Date().toString()); // Adding the date
+				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+				e.printStackTrace(exceptionPW);
 			}
 
 		} catch (IOException e) {
@@ -248,7 +261,7 @@ public class HTTPProxy implements Runnable{
 	{
 		cache.put(url, file);
 	}
-	
+
 	public static void addBlocked(String url)
 	{
 		blockList.put(url, url);
@@ -259,7 +272,7 @@ public class HTTPProxy implements Runnable{
 		if(blockList.containsKey(url)) return true;
 		else return false;
 	}
-	
+
 	public static boolean blockedPhrase (String url)
 	{
 		for(String s : blockList.values())
@@ -269,208 +282,167 @@ public class HTTPProxy implements Runnable{
 		return false;
 	}
 
-	@Override
-	public void run() {
-		Scanner scanner = new Scanner(System.in);
-		String command;
-		while(running){
-			System.out.println("Enter new site to block, or type \"blocked\" to see blocked sites, \"cached\" to see cached sites, or \"close\" to close server.");
-			command = scanner.nextLine();
-			if(command.toLowerCase().equals("blocked")){
-				System.out.println("\nCurrently Blocked Sites");
-				for(String key : blockList.keySet()){
-					System.out.println(key);
-				}
-				System.out.println();
-			} 
-			else if(command.toLowerCase().equals("cached")){
-				System.out.println("\nCurrently Cached Sites");
-				for(String key : cache.keySet()){
-					System.out.println(key);
-				}
-				System.out.println();
-			}
-			else if(command.equals("close")){
-				running = false;
+	private void initialize() {
+		proxyGUI = new JFrame();
+		proxyGUI.addWindowListener(new WindowAdapter() 
+		{
+			public void windowClosing(WindowEvent e) 
+			{
+				proxyGUI.dispose();
 				shutDownProxy();
 			}
-			else {
-				blockList.put(command, command);
-				System.out.println("\n" + command + " blocked successfully \n");
-			}
-		}
-		scanner.close();
-	} 
-
-	private void initialize() {
-		patternIp = Pattern
-				.compile("^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$");
-		proxyGUI = new JFrame();
-		proxyGUI.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				int confirmed = JOptionPane
-						.showConfirmDialog(
-								null,
-								"Are you sure you want to exit the program?\nThis will turn off the proxy.",
-								"Exit Program Message Box", JOptionPane.YES_NO_OPTION);
-
-				if (confirmed == JOptionPane.YES_OPTION) {
-					System.setOut(System.out);
-					proxyGUI.dispose();
-					shutDownProxy();
-				} else {
-					proxyGUI.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-				}
-			}
 		});
-		proxyGUI.setTitle("HTTP Proxy Manager");
-		proxyGUI.setBounds(100, 100, 513, 400);
+		proxyGUI.setTitle("Proxy");
+		proxyGUI.setBounds(100, 100, 913, 400);
 		proxyGUI.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		proxyGUI.setResizable(false);
 
 		JMenuBar menuBar = new JMenuBar();
 		proxyGUI.setJMenuBar(menuBar);
 
-		JMenu mnFile = new JMenu("File");
-		menuBar.add(mnFile);
-
-		JMenuItem mntmOpenFile = new JMenuItem("Show Cache");
-		mntmOpenFile.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				addToInfoAread(
-						"________________________CACHE_DUMP_START________________________________",
-						true);
-				for (String key : cache.keySet()) 
-				{
-					addToInfoAread(key+"", true);
-				}
-				addToInfoAread(
-						"_________________________CACHE_DUMP_END_________________________________",
-						true);
-			}
-		});
-		mnFile.add(mntmOpenFile);
-
-		JMenu mnEdit = new JMenu("Edit");
-		menuBar.add(mnEdit);
-
-//		JMenuItem mnConfig = new JMenuItem("Config");
-//		mnConfig.addActionListener(new ActionListener() {
-//			public void actionPerformed(ActionEvent e) {
-//				ConfigEditGUI cui = new ConfigEditGUI();
-//				cui.getMainFrame().setVisible(true);
-//				cui.getMainFrame().setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-//			}
-//		});
-//		mnEdit.add(mnConfig);
-
 		JMenu mnHelp = new JMenu("Help");
 		menuBar.add(mnHelp);
 
-		JMenuItem mntmAbout = new JMenuItem("About");
-		mntmAbout.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JFrame frmAbout = new JFrame("About HTTP Proxy");
+		JMenuItem mntmAbout = new JMenuItem("Usage");
+		mntmAbout.addActionListener(new ActionListener() 
+		{
+			public void actionPerformed(ActionEvent e) 
+			{
+				JFrame frmAbout = new JFrame("How to Use");
 				int X = proxyGUI.getWidth() / 2;
 				int Y = proxyGUI.getHeight() / 2;
-				frmAbout.setBounds(X, Y, 300, 50);
+				frmAbout.setBounds(X, Y, 300, 150);
 				frmAbout.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 				frmAbout.setResizable(false);
-				txtAbout = new JTextField();
-				txtAbout.setText("Author - Tobias Hallen");
+				txtAbout = new JTextArea();
+				txtAbout.setText("First box is input, second box is output.\nEnter a phrase and press corresponding \nbutton to add/remove from block list.");
 				frmAbout.getContentPane().add(txtAbout, BorderLayout.CENTER);
 				txtAbout.setEditable(false);
-				txtAbout.setColumns(10);
+				frmAbout.pack();
 				frmAbout.setVisible(true);
 			}
 		});
 		mnHelp.add(mntmAbout);
 		proxyGUI.getContentPane().setLayout(null);
 
-		JButton btnBlockHost = new JButton("Block URL");
-		btnBlockHost.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String hostToBlock = infoField.getText();
-				if (!hostToBlock.isEmpty()) {
-					infoField.setText("");
-					int choice = JOptionPane.showConfirmDialog(null,
-							"Are you sure you want block: " + hostToBlock, "Block URL",
-							JOptionPane.YES_NO_OPTION);
-					if (choice == JOptionPane.YES_OPTION) {
+		JButton blockPhrase = new JButton("Block Phrase");
+		blockPhrase.addActionListener(new ActionListener() 
+		{
+			public void actionPerformed(ActionEvent e) 
+			{
+				String hostToBlock = iOField.getText();
+				if (!hostToBlock.isEmpty()) 
+				{
+					iOField.setText("");
+					int choice = JOptionPane.showConfirmDialog(null,"Are you sure you want block: " + hostToBlock, "Block Phrase",JOptionPane.YES_NO_OPTION);
+					if (choice == JOptionPane.YES_OPTION) 
+					{
 						addBlocked(hostToBlock);
-						txtInfoArea.append(hostToBlock + " has been blocked.\n");
+						addToInfoArea(hostToBlock + " has been blocked.");
 					}
-				} else {
-					txtInfoArea.append("You need to enter a host.\n");
+				} else addToInfoArea("You must enter a phrase to block.");
+			}
+		});
+		blockPhrase.setBounds(12, 12, 119, 100);
+		proxyGUI.getContentPane().add(blockPhrase);
+
+		JButton unblockPhrase = new JButton("Unblock Phrase");
+		unblockPhrase.addActionListener(new ActionListener() 
+		{
+			public void actionPerformed(ActionEvent e) 
+			{
+				String phraseToUnblock = iOField.getText();
+				iOField.setText("");
+				int choice = JOptionPane.showConfirmDialog(null, "Are you sure you want unblock: " + phraseToUnblock, "Unblock Phrase", JOptionPane.YES_NO_OPTION);
+				if (choice == JOptionPane.YES_OPTION) 
+				{
+					if (blockList.remove(phraseToUnblock, phraseToUnblock)) addToInfoArea("Unblocked: " + phraseToUnblock );
+					else addToInfoArea("Cannot unblock: " + phraseToUnblock + ", may not be present in list.");	
 				}
 			}
 		});
-		btnBlockHost.setBounds(12, 12, 155, 100);
-		proxyGUI.getContentPane().add(btnBlockHost);
+		unblockPhrase.setBounds(139, 12, 119, 100);
+		proxyGUI.getContentPane().add(unblockPhrase);
 
-		JButton btnUnblockHost = new JButton("Unblock URL");
-		btnUnblockHost.addActionListener(new ActionListener() {
+		JButton listBlocked = new JButton("List Blocked");
+		listBlocked.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String hostToUnblock = infoField.getText();
-				infoField.setText("");
-				int choice = JOptionPane.showConfirmDialog(null, "Are you sure you want unblock: "
-						+ hostToUnblock, "Unlock URL", JOptionPane.YES_NO_OPTION);
-				if (choice == JOptionPane.YES_OPTION) {
-					if (blockList.remove(hostToUnblock, hostToUnblock)) {
-						txtInfoArea.append("Unblocked: " + hostToUnblock + "\n");
-					} else {
-						txtInfoArea.append("Unable to unblock: " + hostToUnblock + "\n");
-					}
-				}
-			}
-		});
-		btnUnblockHost.setBounds(179, 12, 155, 100);
-		proxyGUI.getContentPane().add(btnUnblockHost);
-
-		JButton btnListHost = new JButton("List Blocked URL's");
-		btnListHost.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String s = "";
+				String temp = "";
 				List<String> list = new ArrayList<String>(blockList.values());
 				for (int i = 0; i < list.size(); i++) {
 					if (!list.get(i).isEmpty()) {
-						s += "[" + list.get(i) + "]";
+						temp += "[" + list.get(i) + "]";
 					}
 				}
-				if (!s.isEmpty()) {
-					txtInfoArea.append("Blocked host: " + s + "\n");
+				if (!temp.isEmpty()) {
+					addToInfoArea("Blocked host: " + temp);
 				} else {
-					txtInfoArea.append("Blocked host: " + "[]\n");
+					addToInfoArea("Block List is Empty.");
 				}
 			}
 		});
-		btnListHost.setBounds(346, 12, 155, 100);
-		proxyGUI.getContentPane().add(btnListHost);
+		listBlocked.setBounds(266, 12, 119, 100);
+		proxyGUI.getContentPane().add(listBlocked);
 
-		txtInfoArea = new JTextArea(10, 40);
-		txtInfoArea.setLineWrap(true);
-		txtInfoScrollPane = new JScrollPane(txtInfoArea);
-		txtInfoScrollPane.setBounds(12, 162, 489, 150);
-		txtInfoScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-		proxyGUI.getContentPane().add(txtInfoScrollPane);
-		DefaultCaret caret = (DefaultCaret) txtInfoArea.getCaret();
-		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		JButton showCacheButton = new JButton("Show Cache");
+		showCacheButton.addActionListener(new ActionListener() 
+		{
+			public void actionPerformed(ActionEvent e) 
+			{
+				addToInfoArea("Cache Dump:\n");
+				for (String key : cache.keySet()) 
+				{
+					addToInfoArea(""+key);
+				}
+				addToInfoArea("\n");
+			}
+		});
+		showCacheButton.setBounds(393, 12, 119, 100);
+		proxyGUI.getContentPane().add(showCacheButton);
 
-		infoField = new JTextField();
-		infoField.setBounds(12, 123, 489, 32);
-		proxyGUI.getContentPane().add(infoField);
-		infoField.setColumns(10);
+
+		connectionInfoArea = new JTextArea(10, 40);
+		userIOArea = new JTextArea(40,10);
+
+		connectionInfoArea.setLineWrap(true);
+		userIOArea.setLineWrap(true);
+
+		connInfoScrollPane = new JScrollPane(connectionInfoArea);
+		userIOScrollPane = new JScrollPane(userIOArea);
+
+		connInfoScrollPane.setBounds(12, 122, 500, 190);
+		userIOScrollPane.setBounds(513, 12, 380, 260);
+
+		connInfoScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		userIOScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+
+		proxyGUI.getContentPane().add(connInfoScrollPane);
+		proxyGUI.getContentPane().add(userIOScrollPane);
+
+		DefaultCaret connCaret = (DefaultCaret) connectionInfoArea.getCaret();
+		connCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		DefaultCaret iOCaret = (DefaultCaret) userIOArea.getCaret();
+		iOCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
+		iOField = new JTextField();
+
+		iOField.setBounds(513, 280, 380, 32);
+
+		proxyGUI.getContentPane().add(iOField);
+
+		iOField.setColumns(10);
 
 	}
-	
-    public static void addToInfoAread(String s, boolean addNewLine) {
-	
-	    if (addNewLine) {
+
+	public static void addToConnArea(String s) {
 		s += "\n";
-	    }
-	    txtInfoArea.append(s);
-	
-    }
+		try {
+			connectionInfoArea.append(s);
+		} catch (NullPointerException e) {}	
+	}
 
-
+	public static void addToInfoArea(String s) { 
+		s += "\n";
+		userIOArea.append(s);	
+	}
 }
