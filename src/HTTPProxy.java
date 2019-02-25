@@ -25,10 +25,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -44,11 +40,8 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.text.DefaultCaret;
 
-
-
-
-public class HTTPProxy{
-
+public class HTTPProxy
+{
 	private static JFrame proxyGUI;
 
 	//creates instance of HTTP proxy
@@ -64,7 +57,8 @@ public class HTTPProxy{
 				{
 					proxy.initialize();
 					proxyGUI.setVisible(true);
-				} catch (Exception e) 
+				} 
+				catch (Exception e) 
 				{
 					e.printStackTrace();
 				}
@@ -95,7 +89,8 @@ public class HTTPProxy{
 
 
 	@SuppressWarnings("unchecked")
-	public HTTPProxy(int port) {
+	public HTTPProxy(int port) 
+	{
 		cache = new HashMap<>();
 		blockList = new HashMap<>();
 		threadList = new ArrayList<>();
@@ -134,13 +129,15 @@ public class HTTPProxy{
 				objectStream.close();
 			}
 		} 
-		catch (IOException e) {
+		catch (IOException e) 
+		{
 			exceptionPW.write("Error loading previously cached sites file");
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 			e.printStackTrace(exceptionPW);
 		} 
-		catch (ClassNotFoundException e) {
+		catch (ClassNotFoundException e) 
+		{
 			exceptionPW.write("Class not found loading in preivously cached sites file");
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
@@ -153,19 +150,22 @@ public class HTTPProxy{
 			System.out.println("Proxy Started using port " + serverSocket.getLocalPort() + ".");
 			running = true;
 		} 
-		catch (SocketException e) {
+		catch (SocketException e) 
+		{
 			exceptionPW.write("Socket Error");
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 			e.printStackTrace(exceptionPW);
 		}
-		catch (SocketTimeoutException e) {
+		catch (SocketTimeoutException e) 
+		{
 			exceptionPW.write("Timeout Error\n");
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 			e.printStackTrace(exceptionPW);
 		} 
-		catch (IOException e) {
+		catch (IOException e) 
+		{
 			System.out.println("Read/Write Error");
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
@@ -173,20 +173,28 @@ public class HTTPProxy{
 		}
 	}
 
-	public void listen(){
-		while(running){
+	public void listen()
+	{
+		while(running)
+		{
 			try {
 				Socket s = serverSocket.accept();
 				Thread t = new Thread(new HTTPProxyWorkerThread(s));				
 				threadList.add(t);			
 				t.start();	
-			} catch (SocketException e) {
+			} 
+			catch (SocketException e) 
+			{
 				System.out.println("Server Shut Down...");
-			} catch (IOException e) {
+			} 
+			catch (IOException e) 
+			{
 				exceptionPW.write(new Date().toString()); // Adding the date
 				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 				e.printStackTrace(exceptionPW);
-			} catch (NullPointerException e) {
+			} 
+			catch (NullPointerException e) 
+			{
 				exceptionPW.write(new Date().toString()); // Adding the date
 				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 				e.printStackTrace(exceptionPW);
@@ -194,7 +202,8 @@ public class HTTPProxy{
 		}
 	}
 
-	public void shutDownProxy(){
+	public void shutDownProxy()
+	{
 		System.out.println("Shutting down Proxy..");
 		running = false;
 		try{
@@ -221,21 +230,29 @@ public class HTTPProxy{
 						i.next().join();
 					}
 				}
-			} catch (InterruptedException e) {
+			} 
+			catch (InterruptedException e) 
+			{
 				exceptionPW.write(new Date().toString()); // Adding the date
 				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 				e.printStackTrace(exceptionPW);
-			} catch (ConcurrentModificationException e) {
+			} 
+			catch (ConcurrentModificationException e) 
+			{
 				exceptionPW.write(new Date().toString()); // Adding the date
 				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 				e.printStackTrace(exceptionPW);
-			} catch (NoSuchElementException e) {
+			} 
+			catch (NoSuchElementException e) 
+			{
 				exceptionPW.write(new Date().toString()); // Adding the date
 				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
 				e.printStackTrace(exceptionPW);
 			}
 
-		} catch (IOException e) {
+		} 
+		catch (IOException e) 
+		{
 			exceptionPW.write("File read/write error");
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
@@ -244,7 +261,9 @@ public class HTTPProxy{
 		try
 		{
 			serverSocket.close();
-		} catch (Exception e) {
+		} 
+		catch (Exception e) 
+		{
 			exceptionPW.write("Error closing socket");
 			exceptionPW.write(new Date().toString()); // Adding the date
 			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
@@ -282,7 +301,8 @@ public class HTTPProxy{
 		return false;
 	}
 
-	private void initialize() {
+	private void initialize() 
+	{
 		proxyGUI = new JFrame();
 		proxyGUI.addWindowListener(new WindowAdapter() 
 		{
@@ -431,14 +451,16 @@ public class HTTPProxy{
 		proxyGUI.getContentPane().add(iOField);
 
 		iOField.setColumns(10);
-
 	}
 
-	public static void addToConnArea(String s) {
+	public static void addToConnArea(String s) 
+	{
 		s += "\n";
-		try {
+		try 
+		{
 			connectionInfoArea.append(s);
-		} catch (NullPointerException e) {}	
+		} 
+		catch (NullPointerException e) {}	
 	}
 
 	public static void addToInfoArea(String s) { 

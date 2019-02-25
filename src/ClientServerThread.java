@@ -14,7 +14,7 @@ class ClientServerThread implements Runnable
 	FileWriter exceptionWriter;
 	PrintWriter exceptionPW;
 
-	
+
 	public ClientServerThread(InputStream clientInput, OutputStream serverOutput) 
 	{
 		this.clientInput = clientInput;
@@ -25,15 +25,16 @@ class ClientServerThread implements Runnable
 		} 
 		catch (IOException e) 
 		{
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 			e.printStackTrace(exceptionPW);
 		}
-        exceptionPW=new PrintWriter(exceptionWriter,true);
+		exceptionPW=new PrintWriter(exceptionWriter,true);
 	}
 
 	@Override
-	public void run(){
+	public void run()
+	{
 		try 
 		{
 			//read raw data from client to forward it to the server
@@ -54,15 +55,16 @@ class ClientServerThread implements Runnable
 		}
 		catch (SocketTimeoutException e) 
 		{
-			exceptionPW.write("Client Listener Time Out Error\n");
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("Client HTTPS Timeout\n");
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 			e.printStackTrace(exceptionPW);
 		}
-		catch (IOException e1) {
+		catch (IOException e1) 
+		{
 			exceptionPW.write("Read/Write Error\n");
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 			e1.printStackTrace(exceptionPW);
 
 		}

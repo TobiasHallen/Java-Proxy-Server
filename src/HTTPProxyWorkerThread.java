@@ -18,7 +18,8 @@ import java.util.Date;
 
 import javax.imageio.ImageIO;
 
-public class HTTPProxyWorkerThread implements Runnable {
+public class HTTPProxyWorkerThread implements Runnable 
+{
 
 	FileWriter exceptionWriter;
 	PrintWriter exceptionPW;
@@ -31,7 +32,8 @@ public class HTTPProxyWorkerThread implements Runnable {
 	 * @param socket socket connected to the client
 	 * READ
 	 */
-	public HTTPProxyWorkerThread(Socket socket){
+	public HTTPProxyWorkerThread(Socket socket)
+	{
 		this.client = socket;
 		try
 		{
@@ -44,8 +46,8 @@ public class HTTPProxyWorkerThread implements Runnable {
 		catch (IOException e) 
 		{
 			exceptionPW.write("Read/Write Error\n");
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 			e.printStackTrace(exceptionPW);
 		}
 	}
@@ -56,16 +58,20 @@ public class HTTPProxyWorkerThread implements Runnable {
 	 * Parses Request, initialises appropriate response based on request type
 	 */
 	@Override
-	public void run() {
+	public void run() 
+	{
 
 		//attempt to receive client request
 		String request;
-		try{
+		try
+		{
 			request = clientReader.readLine();
-		} catch (IOException e) {
+		} 
+		catch (IOException e) 
+		{
 			exceptionPW.write("Read/Write Error\n");
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 			e.printStackTrace(exceptionPW);
 			return;
 		}
@@ -73,19 +79,22 @@ public class HTTPProxyWorkerThread implements Runnable {
 		String[] formattedArray = formatRequest(request);
 
 		// check if requested site is in block list
-		if(HTTPProxy.blockedPhrase(formattedArray[1])){
-			HTTPProxy.addToConnArea(formattedArray[1]+" has been blocked on this proxy.");
+		if(HTTPProxy.blockedPhrase(formattedArray[1]))
+		{
+			HTTPProxy.addToInfoArea(formattedArray[1]+" has been blocked on this proxy.");
 			return;
 		}
 
 		// Check if received HTTPS request
-		if(formattedArray[0].equals("CONNECT")){
+		if(formattedArray[0].equals("CONNECT"))
+		{
 			HTTPProxy.addToConnArea("HTTPS Request Received: " + formattedArray[1] + "\n");
 			httpsHandler(formattedArray[1]);
 		} 
 
 		// Check if request is stashed in cache
-		else{
+		else
+		{
 			File f;
 			if((f = HTTPProxy.searchCache(formattedArray[1])) != null)
 			{
@@ -108,40 +117,40 @@ public class HTTPProxyWorkerThread implements Runnable {
 	{
 		//cut out the "http://" from the url 
 		String onlyURL = url.substring(7);
-		
+
 		//split the URL into actual URL and port
 		String split[] = onlyURL.split(":");
 		onlyURL = split[0];
 		int port  = Integer.valueOf(split[1]);
-	
+
 		try
 		{
 			//use DNS to get IP from URL
 			InetAddress ip = InetAddress.getByName(onlyURL);
-	
+
 			//read in the HTTPS request
 			for(int i=0;i<5;i++)clientReader.readLine();
-			
+
 			//create socket for server
 			Socket serverSocket = new Socket(ip, port);
 			serverSocket.setSoTimeout(4000);
-	
+
 			//respond positively to client
 			String s = "HTTP/1.0 200 Connection established\r\n\r\n";
 			clientWriter.write(s);
 			clientWriter.flush();
-	
-	
+
+
 			//reader and writer to handle data forwarding between client and server
 			BufferedWriter writeToServer = new BufferedWriter(new OutputStreamWriter(serverSocket.getOutputStream()));
 			BufferedReader readFromServer = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
-			
+
 			//open a new thread to handle data forwarding from client to server
 			ClientServerThread clientServerThread = new ClientServerThread(client.getInputStream(), serverSocket.getOutputStream());
-	
+
 			httpsThread = new Thread(clientServerThread);
 			httpsThread.start();
-	
+
 			try 
 			{
 				//read raw data from server to send it on to the client
@@ -163,17 +172,18 @@ public class HTTPProxyWorkerThread implements Runnable {
 			catch (SocketTimeoutException e) 
 			{
 				exceptionPW.write("HTTPS Time Out Error\n");
-				exceptionPW.write(new Date().toString()); // Adding the date
-				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+				exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 				e.printStackTrace(exceptionPW);
 			}
-			catch (IOException e) {
+			catch (IOException e) 
+			{
 				exceptionPW.write("Read/Write Error\n");
-				exceptionPW.write(new Date().toString()); // Adding the date
-				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+				exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 				e.printStackTrace(exceptionPW);
 			}
-	
+
 			try 
 			{
 				serverSocket.close();
@@ -181,7 +191,7 @@ public class HTTPProxyWorkerThread implements Runnable {
 				writeToServer.close();
 				clientWriter.close();
 			} catch (NullPointerException e) {}
-	
+
 		} 
 		catch (SocketTimeoutException e) 
 		{
@@ -200,8 +210,8 @@ public class HTTPProxyWorkerThread implements Runnable {
 		catch (Exception e)
 		{
 			exceptionPW.write("Error processing HTTPS request: " + url +"\n");
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 			e.printStackTrace(exceptionPW);
 		}
 	}
@@ -219,23 +229,23 @@ public class HTTPProxyWorkerThread implements Runnable {
 			//transform URL into OS compatible filename while still being identifiable
 			int fileExtensionIndex = url.lastIndexOf(".");
 			String extension;
-	
+
 			//get the extension of the file
 			extension = url.substring(fileExtensionIndex, url.length());
-	
+
 			//get everything but the extension of the file
 			String fileName = url.substring(0,fileExtensionIndex);
-	
-	
+
+
 			//get rid of sub domain
 			fileName = fileName.substring(fileName.indexOf('.')+1);
-	
+
 			//replace any other illegal characters
 			fileName = fileName.replace(".", "dot");
 			fileName = fileName.replace("/","slash");
-	
+
 			//remove any illegal characters in extension and add ".html" to complete file name
-	
+
 			if(extension.contains("/"))
 			{
 				extension = extension.replace(".", "dot");
@@ -248,22 +258,36 @@ public class HTTPProxyWorkerThread implements Runnable {
 				extension = extension.replace(".png","");
 				extension += ".png";
 			}
-	
-			//			extension = extension.replace("\\","backslash");
-			//			extension = extension.replace("%","percent");
-			//			extension = extension.replace("*","asterisk");
-			//			extension = extension.replace(":","colon");
-			//			extension = extension.replace("|","pipe");
-			//			extension = extension.replace("<","lessthan");
-			//			extension = extension.replace(">","greaterthan");
-	
+			if(extension.contains(".gif"))
+			{
+				extension = extension.replace("?", "questionmark");
+				extension = extension.replace(".gif","");
+				extension += ".gif";
+			}
+			if(extension.contains(".jpg"))
+			{
+				extension = extension.replace("?", "questionmark");
+				extension = extension.replace(".jpg","");
+				extension += ".jpg";
+			}
+			if(extension.contains(".jpeg"))
+			{
+				extension = extension.replace("?", "questionmark");
+				extension = extension.replace(".jpeg","");
+				extension += ".jpeg";
+			}
+
 			fileName = fileName + extension;
 			if(extension.contains(".png"))extension=".png";
+			if(extension.contains(".gif"))extension=".gif";
+			if(extension.contains(".jpg"))extension=".jpg";
+			if(extension.contains(".jpeg"))extension=".jpeg";
+
 			//try to cache file
 			boolean caching = true;
 			File cacheFile = null;
 			BufferedWriter writeToCache = null;
-	
+
 			try
 			{
 				cacheFile = new File("Cache/" + fileName);
@@ -275,35 +299,36 @@ public class HTTPProxyWorkerThread implements Runnable {
 			{
 				caching = false;
 				exceptionPW.write("Read/Write Error\n");
-				exceptionPW.write(new Date().toString()); // Adding the date
-				exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+				exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 				e.printStackTrace(exceptionPW);
 			} 
 			catch (NullPointerException e) 
 			{
 				exceptionPW.write("NullPointerException when trying to open File\n");
 			}
-	
+
 			//check if file is in a conventional image format
-			if((extension.contains(".gif")) || extension.contains(".jpeg") ||extension.contains(".jpg") || extension.contains(".png")){
+			if((extension.contains(".gif")) || extension.contains(".jpeg") ||extension.contains(".jpg") || extension.contains(".png"))
+			{
 				//get new BufferedImage from URL
 				URL remoteURL = new URL(url);
 				BufferedImage imageBuffer = ImageIO.read(remoteURL);
-	
+
 				//check that an image was received
 				if(imageBuffer != null) 
 				{
 					//if yes, write it to disk
 					ImageIO.write(imageBuffer, extension.substring(1), cacheFile);
-	
+
 					//respond positively
-					String temp = "HTTP/1.0 200 OK\n" + "\r\n";
+					String temp = "HTTP/1.0 200 OK\n\r\n";
 					clientWriter.write(temp);
 					clientWriter.flush();
-	
+
 					//forward image file to client
 					ImageIO.write(imageBuffer, extension.substring(1), client.getOutputStream());
-	
+
 				} 
 				//otherwise nothing was received
 				else 
@@ -315,7 +340,7 @@ public class HTTPProxyWorkerThread implements Runnable {
 					return;
 				}
 			} 
-	
+
 			//should be text file otherwise
 			else 
 			{					
@@ -326,22 +351,22 @@ public class HTTPProxyWorkerThread implements Runnable {
 				connectionToServer.setUseCaches(false);
 				connectionToServer.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 				connectionToServer.setRequestProperty("charset", "utf-8");  
-	
-	
+
+
 				BufferedReader serverReader = new BufferedReader(new InputStreamReader(connectionToServer.getInputStream()));
-	
-	
+
+
 				//respond positively to client
-				String temp = "HTTP/1.0 200 OK\n" + "\r\n";
+				String temp = "HTTP/1.0 200 OK\n\r\n";
 				clientWriter.write(temp);
-	
-	
+
+
 				//keep reading lines until serverReader is empty
 				while((temp = serverReader.readLine()) != null)
 				{
 					//write to file for cache, assuming file initialisation was successful
 					if(caching)	writeToCache.write(temp);
-	
+
 					//forward lines to the client
 					clientWriter.write(temp);
 				}
@@ -349,25 +374,25 @@ public class HTTPProxyWorkerThread implements Runnable {
 				if(serverReader != null)serverReader.close();
 				clientWriter.flush();
 			}
-	
-	
+
+
 			if(caching)
 			{
 				//add data to cache in main class
 				writeToCache.flush();
 				HTTPProxy.addToCache(url, cacheFile);
 			}
-	
+
 			//close writeToCache
 			if(writeToCache != null)writeToCache.close();
-	
+
 			//close clientWriter
 			if(clientWriter != null)clientWriter.close();
 		} 
 		catch (Exception e)
 		{
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
+
 			e.printStackTrace(exceptionPW);
 		}
 	}
@@ -400,7 +425,7 @@ public class HTTPProxyWorkerThread implements Runnable {
 				else 
 				{
 					//check if image is null, if not response positive
-					proxyResponse = "HTTP/1.0 200 OK\n" + "\r\n";
+					proxyResponse = "HTTP/1.0 200 OK\n\r\n";
 					clientWriter.write(proxyResponse);
 					clientWriter.flush();
 					ImageIO.write(imageBuffer, fileExtension.substring(1), client.getOutputStream());
@@ -411,7 +436,7 @@ public class HTTPProxyWorkerThread implements Runnable {
 			else 
 			{
 				BufferedReader textBuffer = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
-				proxyResponse = "HTTP/1.0 200 OK\n" + "\r\n";
+				proxyResponse = "HTTP/1.0 200 OK\n\r\n";
 				clientWriter.write(proxyResponse);
 				clientWriter.flush();
 
@@ -432,8 +457,7 @@ public class HTTPProxyWorkerThread implements Runnable {
 		catch (IOException e) 
 		{
 			exceptionPW.write("Read/Write Error\n");
-			exceptionPW.write(new Date().toString()); // Adding the date
-			exceptionPW.write(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())+"\n"); // Formatted date
+			exceptionPW.write("\n"+new Date().toString()+"\n"); // Adding the date
 			e.printStackTrace(exceptionPW);
 		}
 	}
